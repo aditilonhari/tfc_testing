@@ -1,3 +1,14 @@
+terraform {
+  cloud {
+    organization = "trombs-test-org"
+    hostname = "tfcdev-4671ff4e.ngrok.io" # Optional; defaults to app.terraform.io
+
+    workspaces {
+      tags = ["test"]
+    }
+  }
+}
+
 provider "aws" {
 }
 
