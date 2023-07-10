@@ -1,60 +1,56 @@
 terraform {
-  cloud {
-    organization = "trombs-test-org"
-    hostname = "tfcdev-4671ff4e.ngrok.io" # Optional; defaults to app.terraform.io
-
-    workspaces {
-      tags = ["test"]
+  required_providers {
+    tfe = {
+      version = "~> 0.35.0"
     }
   }
 }
 
-provider "aws" {
+provider "tfe" {
+  hostname = var.hostname
 }
 
-resource "aws_rds_cluster" "example" {
-  cluster_identifier = "example"
-  engine             = "aurora-postgresql"
-  engine_mode        = "provisioned"
-  engine_version     = "14.6"
-  database_name      = "test"
-  master_username    = "test"
-  master_password    = "must_be_eight_characters"
+resource "tfe_workspace" "child" {
+  count        = 3
+  organization = var.organization
+  name         = "child-${count.index}-${random_id.child_id.id}"
+  tag_names    = ["test"]
+}
 
-  serverlessv2_scaling_configuration {
-    max_capacity = 1.0
-    min_capacity = 0.5
+resource "random_id" "child_id" {
+  byte_length = 8
+}
+
+resource "tfe_variable" "test-var" {
+  key = "test_var"
+  value = var.random_var
+  category = "env"
+  workspace_id = tfe_workspace.child[0].id
+  description = "This allows the build agent to call back to TFC when executing plans and applies"
+
+  lifecycle {
+    postcondition {
+      condition     = self.category == "env"
+      error_message = "Bad category"
+    }
   }
 }
 
-resource "aws_rds_cluster_instance" "example" {
-  cluster_identifier = aws_rds_cluster.example.id
-  instance_class     = "db.serverless"
-  engine             = aws_rds_cluster.example.engine
-  engine_version     = aws_rds_cluster.example.engine_version
+
+check "health_check" {
+  data "http" "terraform_io" {
+    url = "https://www.terraform.io"
+  }
+  assert {
+    condition = data.http.terraform_io.status_code == 200
+    error_message = "${data.http.terraform_io.url} returned an unhealthy status code"
+  }
 }
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
-}
-
-resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  tags = {
-    Name = "HelloWorld"
+check "random_id_randomness" {
+  assert {
+    condition = tfe_workspace.child[0].name != "testing"
+    error_message = "Random ID is not random."
   }
 }
