@@ -8,7 +8,7 @@ terraform {
       version = "3.6.3"
     }
     aditi-hashicorp = {
-      source = "aditilonhari.ngrok.app/hashiplusorg/aditi-hashicorp"
+      source = "https://aditilonhari.ngrok.app/app/hashiplusorg/registry/providers/private/hashiplusorg/aditi-hashicorp/1.0.0/overview"
       version = "1.0.0"
     }
   }
