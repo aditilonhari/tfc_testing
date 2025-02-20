@@ -7,10 +7,6 @@ terraform {
       source = "hashicorp/random"
       version = "3.6.3"
     }
-    aditi-hashicorp = {
-      source = "aditilonhari.ngrok.app/hashi_plus_org/aditi-hashicorp"
-      version = "1.0.0"
-    }
   }
 }
 
